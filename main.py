@@ -1,6 +1,7 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import requests
-
+import smtplib
+import os
 response = requests.get(url="https://api.npoint.io/8347437be697b0341b03")
 
 posts = response.json()
@@ -16,9 +17,34 @@ def hello_world():
 def about():
     return render_template('about.html')
 
-@app.route('/contact')
+
+@app.route('/contact', methods=["GET", "POST"])
 def contact():
-    return render_template('contact.html')
+    if request.method == "POST":
+        data = request.form
+
+        with smtplib.SMTP("eu-smtp-outbound-1.mimecast.com", 587) as connection:
+            connection.starttls()
+            print(os.environ.get("emailusername"))
+            print(os.environ.get("emailpassword"))
+            connection.login(user=os.environ.get("username"), password=os.environ.get("password"))
+            connection.sendmail(from_addr="smtp@suffolkmotorcyclespares.co.uk",
+                                to_addrs="danielgreenhalgh@suffolkmotorcyclespares.co.uk",
+                                msg=f"subject:New Message\n\nname: {data['name']}\nemail: {data['email']}\nPhone: "
+                                    f"{data['phone']}\nMessage: {data['message']}")
+        return render_template('contact.html', status="Message sent")
+
+    return render_template('contact.html', status="Contact Me")
+
+@app.route('/form-entry', methods=["POST"])
+def receive_data():
+    data = request.form
+    print(type(data))
+    print(data["name"])
+    print(data["email"])
+    print(data["phone"])
+    print(data["message"])
+    return "<h1>Successfully sent your message</h1>"
 
 @app.route('/post/<int:post_id>')
 def post(post_id):
